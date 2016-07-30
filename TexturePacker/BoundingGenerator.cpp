@@ -3,6 +3,12 @@
 #include <cassert>
 
 const int BoundingGenerator::MIN_AREA_TO_CUT = 3500;
+enum {
+	TOPLEFT_CORNER = 0, 
+	BOTTOMLEFT_CORNER = 1,
+	BOTTOMRIGHT_CORNER = 2,
+	TOPRIGHT_CORNER = 3
+};
 
 BoundingGenerator::BoundingGenerator()
 {
@@ -18,8 +24,7 @@ SpriteInfo BoundingGenerator::GenerateOverlayRects(const std::string& spriteText
     w = inFile->getwidth();
 	h = inFile->getheight();
     
-	// trim
-    FindBoundingBox();
+    FindBoundingPixels();
     
     mSpriteInfo.shapeMask = 0;
 
@@ -32,10 +37,52 @@ SpriteInfo BoundingGenerator::GenerateOverlayRects(const std::string& spriteText
     return mSpriteInfo;
 }
 
+void BoundingGenerator::TryCutCorner(int cornerNo)
+{
+	int dirX, dirY;
+	int fromX, fromY, toX, toY;
+	int bestCutArea, bestCutFromX, bestCutFromY, bestCutToX, bestCutToY;
+
+	bestCutArea = -1;
+
+	// NOTE:Our coordinate system looks this way.
+	// --------->x                       _    
+	// |                  ~/| TOPLEFT   |\  BOTTOMLEFT     /  dirX=-1          \   dirX=1
+	// |                  /   dirX=1      \ dirX=-1       /   dirY=1            \  dirY=1
+	// |                 /    dirY=-1      \ dirY=-1    |/_  BOTTOMRIGHT        _\| TOPRIGHT
+	//\|/
+	// y
+	//
+	// We draw the cutting line counter-clock-wise, on the paper. 
+	switch (cornerNo) {
+	case TOPLEFT_CORNER:
+		dirX = 1;
+		dirY = -1;
+		break;
+
+	case BOTTOMLEFT_CORNER:
+		dirX = -1;
+		dirY = -1;
+		break;
+
+	case BOTTOMRIGHT_CORNER:
+		dirX = -1;
+		dirY = 1;
+		break;
+
+	case TOPRIGHT_CORNER:
+		dirX = 1;
+		dirY = 1;
+		break;
+	}
+
+
+}
+
 // It's an O( n*n*log(n) ) function.
 void BoundingGenerator::TryCutTopLeft()
 {
-    // Try to cut the top left corner the sprite without losing any non-zero pixels.
+    // Try to cut the top left corner of the sprite without losing any valid pixels.
     //   ______
     //  /     |
     // |      |
@@ -43,16 +90,16 @@ void BoundingGenerator::TryCutTopLeft()
 
     int bestArea = -1, bestFx, bestTy; 
 
-    for (int fx = left + 1; fx < right; ++fx)
+    for (int fx = mLeft + 1; fx < mRight; ++fx)
     {
-        int ty_max = bottom, ty_min = top;
+        int ty_max = mBottom, ty_min = mTop;
         int ty_mid;
 
         // Binary search, to find the largest y that segment (fx, top) --> (left, y) is a valide cut.
         while (ty_max > ty_min + 1)
         {
             ty_mid = (ty_max + ty_min) / 2;
-            if (IsCutLineValide(fx, top, left, ty_mid, false))
+            if (IsCutLineValid(fx, mTop, mLeft, ty_mid, false))
             {
                 ty_min = ty_mid;
             }
@@ -64,10 +111,10 @@ void BoundingGenerator::TryCutTopLeft()
 
         int best = ty_min;
 
-        if ( IsCutLineValide(fx, top, left, ty_max, false) )
+        if ( IsCutLineValid(fx, mTop, mLeft, ty_max, false) )
             best = ty_max;
 
-        int CutedArea = (fx - left) * (best - top);
+        int CutedArea = (fx - mLeft) * (best - mTop);
 
         if (bestArea < CutedArea)
         {
@@ -79,7 +126,7 @@ void BoundingGenerator::TryCutTopLeft()
 
     if (bestArea > MIN_AREA_TO_CUT)
     {
-        CPoint pt0 = {bestFx, top}, pt1 = {left, bestTy};
+        CPoint pt0 = {bestFx, mTop}, pt1 = {mLeft, bestTy};
         mSpriteInfo.vertex.push_back(pt0);
         mSpriteInfo.vertex.push_back(pt1);
 
@@ -88,7 +135,7 @@ void BoundingGenerator::TryCutTopLeft()
     else
     {
         // No valid cutting found.
-        CPoint pt ={left, top};
+        CPoint pt ={mLeft, mTop};
         mSpriteInfo.vertex.push_back(pt);
     }
 }
@@ -106,16 +153,16 @@ void BoundingGenerator::TryCutBottomLeft()
     // Start below the top left cutting line.
     int fy_min = mSpriteInfo.vertex.back().y + 1;    
 
-    for (int fy = fy_min; fy < bottom; ++fy)
+    for (int fy = fy_min; fy < mBottom; ++fy)
     {
-        int tx_max = right, tx_min = left;
+        int tx_max = mRight, tx_min = mLeft;
         int tx_mid;
 
         // Binary search.
         while (tx_max > tx_min + 1)
         {
             tx_mid = (tx_max + tx_min) / 2;
-            if (IsCutLineValide(left, fy, tx_mid, bottom, true))
+            if (IsCutLineValid(mLeft, fy, tx_mid, mBottom, true))
             {
                 tx_min = tx_mid;
             }
@@ -127,10 +174,10 @@ void BoundingGenerator::TryCutBottomLeft()
 
         int best = tx_min;
 
-        if ( IsCutLineValide(left, fy, tx_max, bottom, true) )
+        if ( IsCutLineValid(mLeft, fy, tx_max, mBottom, true) )
             best = tx_max;
 
-        int CutedArea = (bottom - fy) * (best - left);
+        int CutedArea = (mBottom - fy) * (best - mLeft);
 
         if (bestArea < CutedArea)
         {
@@ -142,7 +189,7 @@ void BoundingGenerator::TryCutBottomLeft()
 
     if (bestArea > MIN_AREA_TO_CUT)
     {
-        CPoint pt0 = {left, bestFy}, pt1 = {bestTx, bottom};
+        CPoint pt0 = {mLeft, bestFy}, pt1 = {bestTx, mBottom};
         mSpriteInfo.vertex.push_back(pt0);
         mSpriteInfo.vertex.push_back(pt1);
 
@@ -151,7 +198,7 @@ void BoundingGenerator::TryCutBottomLeft()
     else
     {
         // No valid cutting found.
-        CPoint pt ={left, bottom};
+        CPoint pt ={mLeft, mBottom};
         mSpriteInfo.vertex.push_back(pt);
     }
 
@@ -170,16 +217,16 @@ void BoundingGenerator::TryCutBottomRight()
     // Start to the right of the bottom-left cutting line.
     int fx_min = mSpriteInfo.vertex.back().x + 1;
 
-    for (int fx = fx_min; fx < right; ++fx)
+    for (int fx = fx_min; fx < mRight; ++fx)
     {
-        int ty_max = bottom, ty_min = top;
+        int ty_max = mBottom, ty_min = mTop;
         int ty_mid;
 
         // Binary search.
         while (ty_max > ty_min + 1)
         {
             ty_mid = (ty_max + ty_min) / 2;
-            if (IsCutLineValide(fx, bottom, right, ty_mid, true))
+            if (IsCutLineValid(fx, mBottom, mRight, ty_mid, true))
             {
                 ty_max = ty_mid;
             }
@@ -191,10 +238,10 @@ void BoundingGenerator::TryCutBottomRight()
 
         int best = ty_max;
 
-        if ( IsCutLineValide(fx, bottom, right, ty_min, true) )
+        if ( IsCutLineValid(fx, mBottom, mRight, ty_min, true) )
             best = ty_min;
 
-        int CutedArea = (right - fx) * (-best + bottom);
+        int CutedArea = (mRight - fx) * (-best + mBottom);
 
         if (bestArea < CutedArea)
         {
@@ -206,7 +253,7 @@ void BoundingGenerator::TryCutBottomRight()
 
     if (bestArea > MIN_AREA_TO_CUT)
     {
-        CPoint pt0 = {bestFx, bottom}, pt1 = {right, bestTy};
+        CPoint pt0 = {bestFx, mBottom}, pt1 = {mRight, bestTy};
         mSpriteInfo.vertex.push_back(pt0);
         mSpriteInfo.vertex.push_back(pt1);
 
@@ -215,7 +262,7 @@ void BoundingGenerator::TryCutBottomRight()
     else
     {
         // No valid cutting found.
-        CPoint pt ={right, bottom};
+        CPoint pt ={mRight, mBottom};
         mSpriteInfo.vertex.push_back(pt);
     }
 }
@@ -232,16 +279,16 @@ void BoundingGenerator::TryCutTopRight()
     // Start from above the bottom-right cutting line.
     int fy_max = mSpriteInfo.vertex.back().y;
 
-    for (int fy = top + 1; fy < fy_max; ++fy)
+    for (int fy = mTop + 1; fy < fy_max; ++fy)
     {
-        int tx_max = right, tx_min = mSpriteInfo.vertex.front().x + 1;
+        int tx_max = mRight, tx_min = mSpriteInfo.vertex.front().x + 1;
         int tx_mid, best;
 
         // Binary search.
         while (tx_max > tx_min + 1)
         {
             tx_mid = (tx_max + tx_min) / 2;
-            if (IsCutLineValide(right, fy, tx_mid, top, false))
+            if (IsCutLineValid(mRight, fy, tx_mid, mTop, false))
             {
                 tx_max = tx_mid;
             }
@@ -253,10 +300,10 @@ void BoundingGenerator::TryCutTopRight()
 
         best = tx_max;
 
-        if ( IsCutLineValide(right, fy, tx_min, top, false) )
+        if ( IsCutLineValid(mRight, fy, tx_min, mTop, false) )
             best = tx_min;
 
-        int CutedArea = (fy - top) * (right - best);
+        int CutedArea = (fy - mTop) * (mRight - best);
 
         if (bestArea < CutedArea)
         {
@@ -268,7 +315,7 @@ void BoundingGenerator::TryCutTopRight()
 
     if (bestArea > MIN_AREA_TO_CUT)
     {
-        CPoint pt0 = {right, bestFy}, pt1 = {bestTx, top};
+        CPoint pt0 = {mRight, bestFy}, pt1 = {bestTx, mTop};
         mSpriteInfo.vertex.push_back(pt0);
         mSpriteInfo.vertex.push_back(pt1);
 
@@ -277,7 +324,7 @@ void BoundingGenerator::TryCutTopRight()
     else
     {
         // No valid cutting line found.
-        CPoint pt ={right, top};
+        CPoint pt ={mRight, mTop};
         mSpriteInfo.vertex.push_back(pt);
     }
 }
@@ -294,33 +341,43 @@ bool BoundingGenerator::Left(int x0, int y0, int x1, int y1, int xp, int yp)
     return area2 < 0;
 }
 
-bool BoundingGenerator::IsCutLineValide(int fx, int fy, int tx, int ty, bool faceUp)
+// To test if a cutting line is valid or not, we don't need to test every pixels against the line.
+// Instead, if the segment is facing up, we only check if the top-most pixel of every column
+// is included by this cut.
+bool BoundingGenerator::IsCutLineValid(int fromX, int fromY, int toX, int toY, bool faceUp)
 {
-    assert(faceUp == (fx < tx));
+    assert(faceUp == (fromX < toX));
+
+	//   These points will make the corresponding cut invalid,
+	//   with the first cutting-segment facing up, the second one facing down.
+	//      ____       ______
+	//    ./    |     |      |
+	//    /     |      \     |
+	//   |______|      .\____|
 
     int dir = faceUp ? 1 : -1;
-    for (int x = fx; x != tx; x += dir)
+    for (int x = fromX; x != toX; x += dir)
     {
         int y = faceUp ? bottommost_pix[x] : topmost_pix[x];
 
 		// If there is any valid pixel that is on the right side of this segment,
 		// then this segment is invalid.
-        if (!Left(fx, fy, tx, ty, x, y))
+        if (!Left(fromX, fromY, toX, toY, x, y))
             return false;
     }
 
     return true;
 }
 
-void BoundingGenerator::FindBoundingBox()
+void BoundingGenerator::FindBoundingPixels()
 {
     int w = inFile->getwidth(), h = inFile->getheight();
 
-    top = h;
-    left = w; bottom = -1;
-    right = -1;
+    mTop = h;
+    mLeft = w; mBottom = -1;
+    mRight = -1;
 
-    top = 0; left = 0; right = w - 1; bottom = h - 1;
+    mTop = 0; mLeft = 0; mRight = w - 1; mBottom = h - 1;
 
     for (int i = 0; i < w; ++i)
     {
@@ -331,28 +388,8 @@ void BoundingGenerator::FindBoundingBox()
         {
             if (HasValidPixelAt(i, j))
             {
-                //left = std::min(left, i);
-                //right = std::max(right, i);
-                //top = std::min(top, j);
-                //bottom = std::max(bottom, j);
-
                 topmost_pix[i] = std::min(topmost_pix[i], j);
                 bottommost_pix[i] = std::max(bottommost_pix[i], j);
-            }
-        }
-    }
-
-    for (int i = 0; i < h; ++i)
-    {
-        leftmost_pix.push_back(w);
-        rightmost_pix.push_back(-1);
-
-        for (int j = 0; j < w; ++j)
-        {
-            if (HasValidPixelAt(j, i))
-            {
-                leftmost_pix[i] = std::min(leftmost_pix[i], j);
-                rightmost_pix[i] = std::max(rightmost_pix[i], j);
             }
         }
     }

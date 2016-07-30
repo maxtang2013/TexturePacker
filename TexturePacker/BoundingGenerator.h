@@ -22,16 +22,21 @@ private:
 
     void TryCutTopRight();
 
-    void FindBoundingBox();
+	void TryCutCorner(int cornerNo);
+
+    void FindBoundingPixels();
 
     bool HasValidPixelAt(int x, int y);
 
     bool Left(int x0, int y0, int x1, int y1, int xp, int yp);
 
-    // 参数faceUp的意义
-    // true表示线段朝上，表示所有像素点都在此线段上方，则线段合法
-    // false表示线段朝下
-    bool IsCutLineValide(int fx, int fy, int tx, int ty, bool faceUp);
+	//   These points will make the corresponding cut invalid,
+	//   with the first cutting-segment facing up, the second one facing down.
+	//      ____       ______
+	//    ./    |     |      |
+	//    /     |      \     |
+	//   |______|      .\____|
+    bool IsCutLineValid(int fx, int fy, int tx, int ty, bool faceUp);
 
 private:
 
@@ -39,9 +44,9 @@ private:
 
     SpriteInfo mSpriteInfo;
 
-    int top, left, right, bottom;
+    int mTop, mLeft, mRight, mBottom;
 
-    std::vector<int> leftmost_pix, rightmost_pix, topmost_pix, bottommost_pix;
+    std::vector<int> topmost_pix, bottommost_pix;
 
     MyPngWriter* inFile;
 };
