@@ -2,24 +2,32 @@
 Date:		2013/5/28    
 Filename:	TextureSpaceArranger.cpp
 Author:		maxtang
+
+algorithm: Based on http://www.codeproject.com/Articles/210979/Fast-optimizing-rectangle-packing-algorithm-for-bu
+           See also http://people.csail.mit.edu/rivest/pubs/BCR80.pdf
+
 history:
             2014/2/14
-            支持（rectangle截角后形成的）polygon，如下图这样的
-                   _____
-                  /     \
-                 /       |
-                |        |
-                |       /
-                 \_____/
+            Added the feature to support that sprites can be shaped as polygons bellow. 
+                   _____         ______
+                  /     \       |      \
+                 /       |      |       \
+                |        |       \       |
+                |       /         \______|
+                 \_____/           
+
 *********************************************************************/
 #include "TextureSpaceArranger.h"
+#include "GeoUtil.h"
 #include <algorithm>
+
+
+const int BOUNDING_PAD = 2;
 
 struct Comp {
     bool operator()(const SpriteInfo& a, const SpriteInfo& b)
     {
         return a.h > b.h;
-        //return max(a.w, a.h) > max(b.h, b.w);
     }
 };
 
@@ -34,7 +42,7 @@ void TextureSpaceArranger::DoArrange(std::vector<SpriteInfo>& spriteList)
 {
     int size = (int)spriteList.size();
 
-    // 先统计各部分的数据，获得总的大小，用来排序
+    // Calculate sprites' width and height, then sort them.
     for (int i = 0; i < spriteList.size(); ++i)
     {
         int w = 0, h = 0;
@@ -45,10 +53,11 @@ void TextureSpaceArranger::DoArrange(std::vector<SpriteInfo>& spriteList)
             w = std::max(pt.x, w);
             h = std::max(pt.y, h);
         }
-        spriteList[i].w = w + 2;
-        spriteList[i].h = h + 2;
+        spriteList[i].w = w + BOUNDING_PAD;
+        spriteList[i].h = h + BOUNDING_PAD;
     }
 
+	// Sort sprites.
     std::sort(spriteList.begin(), spriteList.end(), Comp());
 
     mPossibleLocations.clear();
@@ -62,33 +71,36 @@ void TextureSpaceArranger::DoArrange(std::vector<SpriteInfo>& spriteList)
 
 bool TextureSpaceArranger::CanBePlacedAt(int x, int y, SpriteInfo &sprite)
 {
-    bool canPutHere = true;    
-    
+    bool result = true;    
+
+    if (x + sprite.w >= mWidth || y + sprite.h >= mHeight)
+        return false;
+
+    sprite.x = x; 
+	sprite.y = y;
+
+    for (int j = 0; j < mOccupiedRects.size(); ++j)
     {
-        if (x + sprite.w >= mWidth || y + sprite.h >= mHeight)
-            return false;
+        const SpriteInfo &oth = mOccupiedRects[j];
 
-        sprite.x = x; sprite.y = y;
-
-        for (int j=0; j<mOccupiedRects.size(); ++j)
+        if ( !NotOverlap(sprite, oth) )
         {
-            const SpriteInfo &oth = mOccupiedRects[j];
-
-            if ( !NotOverlap(sprite, oth) )
-            {
-                canPutHere = false;
-                break;
-            }
+            result = false;
+            break;
         }
-    }
-    return canPutHere;
+	}
+
+    return result;
 }
 
 bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
 {
     std::vector<std::pair<int,int> > possiblePositions = mPossibleLocations;
+
+	// Find more possible positions in the corners of existing sprites.
     FindMorePossiblePositions(possiblePositions, sprite);
 
+	// Sort the expanding list, from left to right, if two positions have the same x, sort them from top to bottom.
     std::sort(possiblePositions.begin(), possiblePositions.end());
 
     for (int i=0; i<possiblePositions.size(); ++i)
@@ -96,21 +108,21 @@ bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
         int x = possiblePositions[i].first;
         int y = possiblePositions[i].second;
 
-        bool canPutHere = CanBePlacedAt(x, y, sprite);
+        bool canBePlaced = CanBePlacedAt(x, y, sprite);
 
-        if (canPutHere)
+        if (canBePlaced)
         {
             sprite.fitted = true;
             sprite.x = x;
             sprite.y = y;
 
-            // 本次加入的矩形的右上角和左下角
+			// Add the top-right corner and bottom-left corner of the new sprite to expanding point list.
             mPossibleLocations.push_back(std::make_pair(sprite.x + sprite.w, sprite.y));
             mPossibleLocations.push_back(std::make_pair(sprite.x , sprite.y + sprite.h));
 
-
-            // 本次加入的矩形的右边（延长线），与可能的上方矩形的交点
-            int maxY = -1;
+			// Draw a ray up from the right edge of the sprite, if the ray hit another sprite at point A,
+			// add A to expanding point list.
+			int maxY = -1;
             for (int k=0; k<mOccupiedRects.size(); ++k)
             {
                 SpriteInfo &oth = mOccupiedRects[k];
@@ -125,7 +137,8 @@ bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
                 mPossibleLocations.push_back(std::make_pair(x + sprite.w, maxY));
             }
 
-            // 本次加入的矩形的下边（延长线），与可能的左方矩形的交点
+            // Draw a line from the bottom-left of the sprite to left, if the ray hit another sprite at point B,
+			// add B to expanding point list.
             int maxX = -1;
             for (int k=0; k<mOccupiedRects.size(); ++k)
             {
@@ -141,7 +154,8 @@ bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
                 mPossibleLocations.push_back(std::make_pair(maxX, sprite.y + sprite.h));
             }
 
-            // 右方其它矩形的下边（延长线）与本矩形的右边的交点
+            // Draw a ray from any the bottom-left corner of any of the existing sprites to the left,
+			// if the ray hit the newly placed sprite, add the cross point to expanding list.
             for (int k=0; k<mOccupiedRects.size(); ++k)
             {
                 SpriteInfo &oth = mOccupiedRects[k];
@@ -150,48 +164,23 @@ bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
                 if (underY > sprite.y && underY < sprite.y + sprite.h
                     && oth.x > sprite.x + sprite.w)
                 {
-                    //bool shouldAdd = true;
-                    //for (int l = 0; l < mOccupiedRects.size(); ++l)
-                    //{
-                    //    SpriteInfo& third = mOccupiedRects[l];
-                    //    // 在本矩形右边，且也与oth下边线延长线相交
-                    //    if (third.x > rect.x && underY > third.y && underY < third.y + third.h)
-                    //    {
-                    //        shouldAdd = false;
-                    //        break;
-                    //    }
-                    //}
-
-                    //if (shouldAdd)
-                        mPossibleLocations.push_back(std::make_pair(sprite.x + sprite.w, underY));
+					mPossibleLocations.push_back(std::make_pair(sprite.x + sprite.w, underY));
                 }
             }
 
-            // 下方其它矩形的右边（延长线）与本矩形的下边的交点
+			// Draw a ray along the right edge of any of the existing sprites up,
+			// if the ray hit the newly placed sprite, add the cross point to expanding list.
             for (int k=0; k<mOccupiedRects.size(); ++k)
             {
                 SpriteInfo &oth = mOccupiedRects[k];
                 int rightX = oth.x + oth.w;
 
-                // 延长线会与本矩形相交
+                // hit the sprite
                 if (rightX > sprite.x && rightX < sprite.x + sprite.w
-                    // 在下方
+                    // and bellow
                     && oth.y > sprite.y + sprite.h)
                 {
-                    //bool shouldAdd = true;
-                    //for (int l = 0; l < mOccupiedRects.size(); ++l)
-                    //{
-                    //    SpriteInfo& third = mOccupiedRects[l];
-                    //    // 在本矩形下边，且也与oth右边延长线相交
-                    //    if (third.y > rect.y && rightX > third.x && rightX < third.x + third.w)
-                    //    {
-                    //        shouldAdd = false;
-                    //        break;
-                    //    }
-                    //}
-
-                    //if (shouldAdd)
-                        mPossibleLocations.push_back(std::make_pair(rightX, sprite.y + sprite.h));
+					mPossibleLocations.push_back(std::make_pair(rightX, sprite.y + sprite.h));
                 }
             }
 
@@ -200,12 +189,6 @@ bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
         }
     }
     return false;
-}
-
-inline bool InnerOn(int x0, int y0, int x1, int y1, int xp, int yp)
-{
-    double area2 = (x1 - x0) * (double)(yp - y0) - (xp - x0) * (double)(y1 - y0);
-    return area2 <= 0;
 }
 
 bool IsPointInside(const SpriteInfo& sprite, int x, int y)
@@ -217,7 +200,7 @@ bool IsPointInside(const SpriteInfo& sprite, int x, int y)
         CPoint p0 = {sprite.vertex[i].x + sprite.x, sprite.vertex[i].y + sprite.y};
         int j = (i + 1) % n;
         CPoint p1 = {sprite.vertex[j].x + sprite.x, sprite.vertex[j].y + sprite.y};
-        if (!InnerOn(p0.x, p0.y, p1.x, p1.y, x, y))
+        if (!LeftOn(p0.x, p0.y, p1.x, p1.y, x, y))
         {
             inside = false;
             break;
@@ -226,27 +209,26 @@ bool IsPointInside(const SpriteInfo& sprite, int x, int y)
     return inside;
 }
 
+// Try to find positions in the corner of another sprite that our new sprite might be able to place at.
 inline void FindPossiblePositions(const SpriteInfo& sprite,const SpriteInfo& oth, std::vector<std::pair<int,int> >& possiblePositions)
 {
-    // 在被切掉的角这里找到可能的放置点    
     int idx = 0;
     int w = sprite.w, h = sprite.h;
-    for (int i = 0; i < 4; ++i, ++idx)
+    for (int corner = 0; corner < 4; ++corner, ++idx)
     {
-        if (!(oth.shapeMask & (1 << i)))
+        if (!(oth.shapeMask & (1 << corner)))
             continue;
 
-        // 左上角无需处理
-        if (i > 0)
+        // Ignore top-left corner.
+        if (corner > 0)
         {
             int j = (idx + 1) % oth.vertex.size();
 
-            // p0-->p1是某个角的截断线
+            // p0-->p1 is the cutting line.
             CPoint p0 = {oth.vertex[idx].x + oth.x, oth.vertex[idx].y + oth.y};
             CPoint p1 = {oth.vertex[j].x + oth.x, oth.vertex[j].y + oth.y};
 
-            // 左下角
-            if (i == 1)
+            if (corner == BOTTOMLEFT_CORNER)
             {
                 if (w < p1.x - p0.x)
                 {
@@ -255,8 +237,7 @@ inline void FindPossiblePositions(const SpriteInfo& sprite,const SpriteInfo& oth
                 }
             }
 
-            // 右下角
-            if (i == 2)
+            if (corner == BOTTOMRIGHT_CORNER)
             {
                 if (h < p0.y - p1.y)
                 {
@@ -264,8 +245,8 @@ inline void FindPossiblePositions(const SpriteInfo& sprite,const SpriteInfo& oth
                     possiblePositions.push_back(std::make_pair<int, int>(pos_x, p0.y - h));
                 }
             }
-            // 右上角
-            if (i == 3)
+
+            if (corner == TOPRIGHT_CORNER)
             {
                 if (h < p0.y - p1.y)
                 {
@@ -290,8 +271,8 @@ void TextureSpaceArranger::FindMorePossiblePositions(std::vector<std::pair<int,i
     }
 }
 
-
-
+// Test if two sprites are not overlapped.
+// Both sprites can be rectangles or truncated rectangles.
 bool TextureSpaceArranger::NotOverlap(const SpriteInfo& a, const SpriteInfo& b)
 {
     if (a.x + a.w <= b.x || a.y + a.h <= b.y
@@ -317,9 +298,8 @@ bool TextureSpaceArranger::NotOverlap(const SpriteInfo& a, const SpriteInfo& b)
             {
                 const CPoint &p = a.vertex[j];
 
-                if (InnerOn(p0.x + b.x, p0.y + b.y, p1.x + b.x, p1.y + b.y, p.x + a.x, p.y + a.y))
+                if (LeftOn(p0.x + b.x, p0.y + b.y, p1.x + b.x, p1.y + b.y, p.x + a.x, p.y + a.y))
                 {
-                    // 点在此边的内侧
                     allOutside = false;
                     break;
                 }

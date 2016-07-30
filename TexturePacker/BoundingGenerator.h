@@ -10,6 +10,8 @@ public:
 
     BoundingGenerator();
 
+	~BoundingGenerator();
+
     SpriteInfo GenerateOverlayRects(const std::string& spriteTextureFilePath);
 
 private:
@@ -28,7 +30,7 @@ private:
 
     bool HasValidPixelAt(int x, int y);
 
-    bool Left(int x0, int y0, int x1, int y1, int xp, int yp);
+    // bool Left(int x0, int y0, int x1, int y1, int xp, int yp);
 
 	//   These points will make the corresponding cut invalid,
 	//   with the first cutting-segment facing up, the second one facing down.

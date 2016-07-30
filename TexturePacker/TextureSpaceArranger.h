@@ -3,14 +3,22 @@
 #include <string>
 #include <vector>
 
+
 struct MyRect
 {
-    int x, y; // 这里的x, y是相对于Sprite的local offset
-    int w, h;
+	int x, y;
+	int w, h;
 };
 
 struct CPoint {
-    int x, y;
+	int x, y;
+};
+
+enum {
+	TOPLEFT_CORNER = 0, 
+	BOTTOMLEFT_CORNER = 1,
+	BOTTOMRIGHT_CORNER = 2,
+	TOPRIGHT_CORNER = 3
 };
 
 // Masks used to check the 4 corners of a sprite has a cutting line.
@@ -30,16 +38,13 @@ struct SpriteInfo
     int  shapeMask; // Mask to indicate if any of the 4 corners of this sprite has a cutting line.
 };
 
-inline bool InnerOn(int x0, int y0, int x1, int y1, int xp, int yp);
-bool IsPointInside(const SpriteInfo& sprite, int x, int y);
-
 class TextureSpaceArranger
 {
 public:
 
     TextureSpaceArranger(int width, int height);
 
-    virtual void DoArrange(std::vector<SpriteInfo>& rects);
+    virtual void DoArrange(std::vector<SpriteInfo>& sprites);
 
 protected:
 

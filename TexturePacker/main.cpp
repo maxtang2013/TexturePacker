@@ -3,62 +3,16 @@
 #include "TextureSpaceArranger.h"
 #include "MyPngWriter.h"
 #include "BoundingGenerator.h"
-
-using namespace std;
-
-struct OriginFile {
-    std::string path;
-};
+#include "GeoUtil.h"
 
 bool IsPointInside(const SpriteInfo& sprite, int x, int y);
-inline bool InnerOn(int x0, int y0, int x1, int y1, int xp, int yp);
-
-bool inSide(int poly[], int n, int x, int y)
-{
-    bool inside = true;
-    for (int i = 0; i < n; ++i)
-    {
-        int x0 = poly[i * 2], y0 = poly[i * 2 + 1];
-        int j = (i + 1) % n;
-        int x1 = poly[j * 2], y1 = poly[j * 2 + 1];
-        if (!InnerOn(x0, y0, x1, y1, x, y))
-        {
-            inside = false;
-            break;
-        }
-    }
-    return inside;
-}
-
-void testInnerOn()
-{
-    int polygon[] = {
-        165, 0,
-        0, 116,
-        0, 212,
-        170, 380,
-        261, 380,
-        382, 290,
-        382, 233,
-        244, 0,        
-    };
-    
-    if (inSide(polygon, 8, 165, 116))
-        printf ("test point (165, 116) inside OK!");
-    else
-        printf ("test point (165, 116) inside WRONG!");
-}
 
 int main()
 {
-    //testInnerOn();
-    //return 0;
-    //
-
     TextureSpaceArranger arrange(4096, 4096);
     std::vector<SpriteInfo> spriteInfos;
 
-    std::string dir("C:\\dev\\old things\\in-game\\Result\\in-game\\");
+    std::string dir("C:\\dev\\Sprites1\\");
     std::string listFilePath = dir + "texList.txt";
 
     std::vector<std::string> fileList;
@@ -129,8 +83,8 @@ int main()
                 }
             }
 
-            // 画出辅助调试的线框
-            if (info.vertex.size() > 4)
+            // Draw the debugging lines.
+			if (info.vertex.size() > 4)
             {
                 int n = info.vertex.size();
                 for (int j = 0; j < n; ++j)
@@ -140,11 +94,6 @@ int main()
                     outputFile.line(info.x + pt0.x, info.y + pt0.y, info.x + pt1.x, info.y + pt1.y, 255, 0, 0, 255);
                 }
             }
-
-            //outputFile.line(info.x, info.y, info.x + w, info.y, 255, 0, 255, 255);
-            //outputFile.line(info.x + w, info.y + h, info.x + w, info.y, 255, 0, 255, 255);
-            //outputFile.line(info.x, info.y + h, info.x + w, info.y + h, 255, 0, 255, 255);
-            //outputFile.line(info.x, info.y + h, info.x, info.y, 255, 0, 255, 255);
         }
         else
         {

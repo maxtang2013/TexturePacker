@@ -1,17 +1,17 @@
 #include "BoundingGenerator.h"
 #include "MyPngWriter.h"
 #include <cassert>
+#include "GeoUtil.h"
 
 const int BoundingGenerator::MIN_AREA_TO_CUT = 3500;
-enum {
-	TOPLEFT_CORNER = 0, 
-	BOTTOMLEFT_CORNER = 1,
-	BOTTOMRIGHT_CORNER = 2,
-	TOPRIGHT_CORNER = 3
-};
 
 BoundingGenerator::BoundingGenerator()
 {
+}
+
+BoundingGenerator::~BoundingGenerator()
+{
+	inFile->close();
 }
 
 SpriteInfo BoundingGenerator::GenerateOverlayRects(const std::string& spriteTextureFilePath)
@@ -23,60 +23,206 @@ SpriteInfo BoundingGenerator::GenerateOverlayRects(const std::string& spriteText
 
     w = inFile->getwidth();
 	h = inFile->getheight();
+
+	mTop = 0;
+	mLeft = 0;
+	mRight = w - 1; 
+	mBottom = h - 1;
     
     FindBoundingPixels();
     
     mSpriteInfo.shapeMask = 0;
 
+	for (int corner = 0; corner < 4; ++corner)
+	{
+		TryCutCorner(corner);
+	}
+
+	//printf("GOOD....\n");
     // Must call these 4 functions in that order.
-	TryCutTopLeft();
-    TryCutBottomLeft();
-    TryCutBottomRight();
-    TryCutTopRight();
+	//TryCutTopLeft();
+    //TryCutBottomLeft();
+    //TryCutBottomRight();
+    //TryCutTopRight();
     
     return mSpriteInfo;
 }
 
-void BoundingGenerator::TryCutCorner(int cornerNo)
+inline void AssignValue(int &x0, int &y0, int &x1, int &y1, 
+	int outer, int outerFixed, int inner, int innerFixed, int corner)
 {
-	int dirX, dirY;
-	int fromX, fromY, toX, toY;
-	int bestCutArea, bestCutFromX, bestCutFromY, bestCutToX, bestCutToY;
-
-	bestCutArea = -1;
-
-	// NOTE:Our coordinate system looks this way.
-	// --------->x                       _    
-	// |                  ~/| TOPLEFT   |\  BOTTOMLEFT     /  dirX=-1          \   dirX=1
-	// |                  /   dirX=1      \ dirX=-1       /   dirY=1            \  dirY=1
-	// |                 /    dirY=-1      \ dirY=-1    |/_  BOTTOMRIGHT        _\| TOPRIGHT
-	//\|/
-	// y
-	//
-	// We draw the cutting line counter-clock-wise, on the paper. 
-	switch (cornerNo) {
+	switch(corner)
+	{
 	case TOPLEFT_CORNER:
-		dirX = 1;
-		dirY = -1;
+	case BOTTOMRIGHT_CORNER:
+		x0 = outer;
+		y0 = outerFixed;
+		x1 = innerFixed;
+		y1 = inner;
 		break;
 
 	case BOTTOMLEFT_CORNER:
-		dirX = -1;
-		dirY = -1;
+	case TOPRIGHT_CORNER:
+		x0 = outerFixed;
+		y0 = outer;
+		x1 = inner;
+		y1 = innerFixed;
+		break;
+	}
+}
+
+//  Try to cut off a corner of the sprite, by drawing a segment (x0, y0) --> (x1,y1),
+//  so that there is no valid pixels on the left side of the segment.
+//  We will keep the valid segment that the cut off triangle has the maximum area.
+//  We achieve this goal by combining 'brute force' and 'binary search' algorithms.
+//
+// (x0,y0)_____            ________          ________               _____(x1, y1)      
+//    /       |           /       |         /       |              /     \  
+//   /        |          /        |        /        |             /       \ (x0, y0)
+//  / (x1,y1) |   ==>   /         | ==>   /         |     ==>    /         |
+//  |         |         |         |       |         |£¨x1,y1)    |         |
+//  |         |         |(x0,y0)  |       |        /             |        /
+//  |_________|          \________|        \______/ (x0,y0£©      \______/
+//                      (x1,y1)
+void BoundingGenerator::TryCutCorner(int cornerNo)
+{
+	int outerFrom, outerTo, innerFrom, innerTo;
+	int outerFixed, innerFixed;
+	int bestCutArea, bestOutter, bestInner;
+	bool faceUp;
+	int x0, y0, x1, y1;
+
+	switch (cornerNo) {
+	case TOPLEFT_CORNER:
+		outerFrom = mLeft + 1;
+		outerTo = mRight;
+		outerFixed = mTop;
+
+		innerFrom = mTop;
+		innerTo = mBottom + 1;
+		innerFixed = mLeft;
+
+		faceUp = false;
+		break;
+
+	case BOTTOMLEFT_CORNER:
+		outerFrom = mSpriteInfo.vertex.back().y + 1;
+		outerTo = mBottom;
+		outerFixed = mLeft;
+
+		innerFixed = mBottom;
+		innerFrom = mLeft;
+		innerTo = mRight + 1;
+
+		faceUp = true;
 		break;
 
 	case BOTTOMRIGHT_CORNER:
-		dirX = -1;
-		dirY = 1;
+		outerFrom = mSpriteInfo.vertex.back().x + 1;
+		outerTo = mRight;
+		outerFixed = mBottom;
+
+		innerFixed = mRight;
+		innerFrom = mBottom;
+		innerTo = mTop - 1;
+		faceUp = true;
 		break;
 
 	case TOPRIGHT_CORNER:
-		dirX = 1;
-		dirY = 1;
+
+		outerFrom = mTop;
+		outerTo = mSpriteInfo.vertex.back().y - 1;
+		outerFixed = mRight;
+
+		innerFrom = mRight;
+		innerTo = mSpriteInfo.vertex.front().x;
+		innerFixed = mTop;
+
+		faceUp = false;
 		break;
 	}
 
+	bestCutArea = -1;
 
+	for (int outer = outerFrom; outer < outerTo; outer += 1)
+	{
+		int mid;
+		int inner = innerFrom;
+		int innerEnd = innerTo;
+		
+		// Binary search, to find the best value for inner that segment(x0, y0) --> (x1, y1) is a valid cutting line.
+		while (abs(inner - innerEnd) > 1)
+		{
+			mid = (innerEnd + inner) / 2;
+
+			AssignValue(x0, y0, x1, y1, outer, outerFixed, mid, innerFixed, cornerNo);
+
+			if (IsCutLineValid(x0, y0, x1, y1, faceUp))
+			{
+				inner = mid;
+			}
+			else
+			{
+				innerEnd = mid;
+			}
+		}
+
+		int area = 0;
+		if (cornerNo == BOTTOMRIGHT_CORNER || cornerNo == BOTTOMLEFT_CORNER)
+		{
+			area = abs((outer - outerTo) * (inner - innerFrom));
+		}
+		else
+		{
+			area = abs((outer - outerFrom) * (inner - innerFrom));
+		}
+
+		if (area > bestCutArea)
+		{
+			bestOutter = outer;
+			bestCutArea = area;
+			bestInner = inner;
+		}
+	}
+
+	if (bestCutArea > MIN_AREA_TO_CUT)
+	{
+		AssignValue(x0, y0, x1, y1, bestOutter, outerFixed, bestInner, innerFixed, cornerNo);
+
+		CPoint pt0 = {x0, y0}, pt1 = {x1, y1};
+		mSpriteInfo.vertex.push_back(pt0);
+		mSpriteInfo.vertex.push_back(pt1);
+
+		mSpriteInfo.shapeMask |= (1 << cornerNo);
+	}
+	else
+	{
+		switch(cornerNo)
+		{
+		case TOPLEFT_CORNER:
+			x0 = mLeft;
+			y0 = mTop;
+			break;
+
+		case BOTTOMLEFT_CORNER:
+			x0 = mLeft;
+			y0 = mBottom;
+			break;
+
+		case BOTTOMRIGHT_CORNER:
+			x0 = mRight;
+			y0 = mBottom;
+			break;
+
+		case TOPRIGHT_CORNER:
+			x0 = mRight;
+			y0 = mTop;
+			break;
+		}
+
+		CPoint pt ={x0, y0};
+		mSpriteInfo.vertex.push_back(pt);
+	}
 }
 
 // It's an O( n*n*log(n) ) function.
@@ -335,19 +481,13 @@ bool BoundingGenerator::HasValidPixelAt(int x, int y)
         || inFile->getGreen(x, y) > 0 || inFile->getBlue(x, y) > 0;
 }
 
-bool BoundingGenerator::Left(int x0, int y0, int x1, int y1, int xp, int yp)
-{
-    double area2 = (x1 - x0) * (double)(yp - y0) - (xp - x0) * (double)(y1 - y0);
-    return area2 < 0;
-}
+
 
 // To test if a cutting line is valid or not, we don't need to test every pixels against the line.
 // Instead, if the segment is facing up, we only check if the top-most pixel of every column
 // is included by this cut.
 bool BoundingGenerator::IsCutLineValid(int fromX, int fromY, int toX, int toY, bool faceUp)
 {
-    assert(faceUp == (fromX < toX));
-
 	//   These points will make the corresponding cut invalid,
 	//   with the first cutting-segment facing up, the second one facing down.
 	//      ____       ______
@@ -372,12 +512,6 @@ bool BoundingGenerator::IsCutLineValid(int fromX, int fromY, int toX, int toY, b
 void BoundingGenerator::FindBoundingPixels()
 {
     int w = inFile->getwidth(), h = inFile->getheight();
-
-    mTop = h;
-    mLeft = w; mBottom = -1;
-    mRight = -1;
-
-    mTop = 0; mLeft = 0; mRight = w - 1; mBottom = h - 1;
 
     for (int i = 0; i < w; ++i)
     {
