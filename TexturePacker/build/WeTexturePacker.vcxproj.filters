@@ -1,0 +1,186 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\libpng">
+      <UniqueIdentifier>{ff069f25-4f02-4e6f-8b42-71456173106a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\libpng\inc">
+      <UniqueIdentifier>{20853ae2-5030-496c-819f-3b3331b3d8db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\libpng\src">
+      <UniqueIdentifier>{3bcc8490-9660-4a37-a866-f36b7d059819}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\libzip">
+      <UniqueIdentifier>{7d393213-11b9-44ec-9250-346721af47ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\libzip\inc">
+      <UniqueIdentifier>{6e8ba9a5-2fc3-453b-9ad9-b7f9faaf8fdb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\libzip\src">
+      <UniqueIdentifier>{6246e6d8-bbcf-4705-bcb0-b423053b86f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\BoundingGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MyPngWriter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TextureSpaceArranger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\png.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngerror.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pnggccrd.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngget.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngmem.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngpread.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngread.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngrio.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngrtran.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngrutil.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngset.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngtrans.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngvcrd.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngwio.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngwrite.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngwtran.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libpng\src\pngwutil.c">
+      <Filter>Source Files\libpng\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\adler32.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\compress.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\crc32.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\deflate.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\gzio.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\infback.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\inffast.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\inflate.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\inftrees.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\trees.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\uncompr.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libzip\src\zutil.c">
+      <Filter>Source Files\libzip\src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\BoundingGenerator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MyPngWriter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TextureSpaceArranger.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libpng\inc\png.h">
+      <Filter>Source Files\libpng\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libpng\inc\pngconf.h">
+      <Filter>Source Files\libpng\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\crc32.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\deflate.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\inffast.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\inffixed.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\inflate.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\inftrees.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\trees.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\zconf.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\zconf.in.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\zlib.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libzip\inc\zutil.h">
+      <Filter>Source Files\libzip\inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
