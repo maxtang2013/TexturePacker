@@ -38,13 +38,13 @@ struct SpriteInfo
     int  shapeMask; // Mask to indicate if any of the 4 corners of this sprite has a cutting line.
 };
 
-class TextureSpaceArranger
+class TexturePacker
 {
 public:
 
-    TextureSpaceArranger(int width, int height);
+    TexturePacker(int width, int height);
 
-    virtual void DoArrange(std::vector<SpriteInfo>& sprites);
+    void Pack(std::vector<SpriteInfo>& sprites);
 
 protected:
 

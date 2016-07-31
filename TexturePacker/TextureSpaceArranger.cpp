@@ -31,14 +31,14 @@ struct Comp {
     }
 };
 
-TextureSpaceArranger::TextureSpaceArranger(int width, int height)
+TexturePacker::TexturePacker(int width, int height)
 :mWidth(width)
 ,mHeight(height)
 {    
     mPossibleLocations.push_back(std::make_pair(0, 0));
 }
 
-void TextureSpaceArranger::DoArrange(std::vector<SpriteInfo>& spriteList)
+void TexturePacker::Pack(std::vector<SpriteInfo>& spriteList)
 {
     int size = (int)spriteList.size();
 
@@ -69,7 +69,7 @@ void TextureSpaceArranger::DoArrange(std::vector<SpriteInfo>& spriteList)
     }
 }
 
-bool TextureSpaceArranger::CanBePlacedAt(int x, int y, SpriteInfo &sprite)
+bool TexturePacker::CanBePlacedAt(int x, int y, SpriteInfo &sprite)
 {
     bool result = true;    
 
@@ -93,7 +93,7 @@ bool TextureSpaceArranger::CanBePlacedAt(int x, int y, SpriteInfo &sprite)
     return result;
 }
 
-bool TextureSpaceArranger::TryArrangeARect(SpriteInfo &sprite)
+bool TexturePacker::TryArrangeARect(SpriteInfo &sprite)
 {
     std::vector<std::pair<int,int> > possiblePositions = mPossibleLocations;
 
@@ -210,7 +210,7 @@ bool IsPointInside(const SpriteInfo& sprite, int x, int y)
 }
 
 // Try to find positions in the corner of another sprite that our new sprite might be able to place at.
-inline void FindPossiblePositions(const SpriteInfo& sprite,const SpriteInfo& oth, std::vector<std::pair<int,int> >& possiblePositions)
+inline void FindPossiblePositionsInCorners(const SpriteInfo& sprite,const SpriteInfo& oth, std::vector<std::pair<int,int> >& possiblePositions)
 {
     int idx = 0;
     int w = sprite.w, h = sprite.h;
@@ -260,20 +260,20 @@ inline void FindPossiblePositions(const SpriteInfo& sprite,const SpriteInfo& oth
     }
 }
 
-void TextureSpaceArranger::FindMorePossiblePositions(std::vector<std::pair<int,int> >& possiblePositions, const SpriteInfo &sprite)
+void TexturePacker::FindMorePossiblePositions(std::vector<std::pair<int,int> >& possiblePositions, const SpriteInfo &sprite)
 {    
     for (int i = 0; i < mOccupiedRects.size(); ++i)
     {
         const SpriteInfo& oth = mOccupiedRects[i];
 
         if (oth.shapeMask & 14)
-            FindPossiblePositions(sprite, oth, possiblePositions);
+            FindPossiblePositionsInCorners(sprite, oth, possiblePositions);
     }
 }
 
 // Test if two sprites are not overlapped.
 // Both sprites can be rectangles or truncated rectangles.
-bool TextureSpaceArranger::NotOverlap(const SpriteInfo& a, const SpriteInfo& b)
+bool TexturePacker::NotOverlap(const SpriteInfo& a, const SpriteInfo& b)
 {
     if (a.x + a.w <= b.x || a.y + a.h <= b.y
         || b.x + b.w <= a.x || b.y + b.h <= a.y)

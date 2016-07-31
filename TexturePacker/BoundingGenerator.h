@@ -8,21 +8,13 @@ class BoundingGenerator {
 
 public:
 
-    BoundingGenerator();
-
+	BoundingGenerator();
+	
 	~BoundingGenerator();
-
-    SpriteInfo GenerateOverlayRects(const std::string& spriteTextureFilePath);
+	
+	SpriteInfo GenerateMoreCompactBounding(const std::string& spriteTextureFilePath);
 
 private:
-
-    void TryCutTopLeft();
-
-    void TryCutBottomLeft();
-
-    void TryCutBottomRight();
-
-    void TryCutTopRight();
 
 	void TryCutCorner(int cornerNo);
 
@@ -48,9 +40,9 @@ private:
 
     int mTop, mLeft, mRight, mBottom;
 
-    std::vector<int> topmost_pix, bottommost_pix;
+    std::vector<int> mTopMostInCol, mBottomMostInCol;
 
-    MyPngWriter* inFile;
+    MyPngWriter* mPngFile;
 };
 
 #endif

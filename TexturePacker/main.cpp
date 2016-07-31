@@ -9,10 +9,10 @@ bool IsPointInside(const SpriteInfo& sprite, int x, int y);
 
 int main()
 {
-    TextureSpaceArranger arrange(4096, 4096);
+    TexturePacker packer(4096, 4096);
     std::vector<SpriteInfo> spriteInfos;
 
-    std::string dir("C:\\dev\\Sprites1\\");
+    std::string dir("C:\\dev\\Sprites\\");
     std::string listFilePath = dir + "texList.txt";
 
     std::vector<std::string> fileList;
@@ -40,7 +40,7 @@ int main()
 
         SpriteInfo info;
         BoundingGenerator boundGen;
-        info = boundGen.GenerateOverlayRects(dir + fileName);
+        info = boundGen.GenerateMoreCompactBounding(dir + fileName);
 
         info.fitted = false;
         info.userData = &fileList[i];
@@ -49,8 +49,10 @@ int main()
 
         spriteInfos.push_back(info);
     }
-
-    arrange.DoArrange(spriteInfos);
+	
+	printf("Generate compact bounding done, start packing...\n");
+    packer.Pack(spriteInfos);
+	printf("Pack done.\n");
 
     MyPngWriter outputFile(4096, 4096, 0, "output.png");
 
