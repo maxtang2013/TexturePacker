@@ -1,7 +1,7 @@
 #ifndef _BOUNDINGGENERATOR_H_
 #define _BOUNDINGGENERATOR_H_
 
-#include "TextureSpaceArranger.h"
+#include "TexturePacker.h"
 #include "MyPngWriter.h"
 
 class BoundingGenerator {

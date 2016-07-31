@@ -69,9 +69,11 @@ inline void MakeSegmentDirectionRight(int &x0, int &y0, int &x1, int &y1,
 //  We will keep the valid segment that the cut off triangle has the maximum area.
 //  We achieve this goal by combining 'brute force' and 'binary search' algorithms.
 
-//  For example, for the top most case.
-//  Let 'outer'
-//
+//  Algorithm details, for the top most case.
+//  1) If (x0, y0) is a fixed point, then the best cut would be the one with the maximum y1.
+//     We find such a 'y1' by applying a binary search.
+//  2) To find the best position for (x0, y0), we use an exhaustive algorithm.
+//        
 // (x0,y0)_____            ________          ________               _____(x1, y1)      
 //    /       |           /       |         /       |              /     \  
 //   /        |          /        |        /        |             /       \ (x0, y0)
